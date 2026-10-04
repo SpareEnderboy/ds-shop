@@ -4,8 +4,12 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      - ${ROMS_DIR:-./roms}:/roms
+      - type: bind
+        source: ${ROMS_DIR:-./roms}
+        target: /roms
+        read_only: ${ROM_VOLUME_READ_ONLY:-true}
     environment:
       - ROMS_DIR=/roms
       - PORT=8888
+      - ENABLE_GITHUB_UPDATES=${ENABLE_GITHUB_UPDATES:-false}
     restart: unless-stopped

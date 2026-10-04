@@ -204,6 +204,7 @@ static int read_response(int sock, char *buf, size_t buf_size,
 
 int http_get(const char *host, int port, const char *path,
              char *buf, size_t buf_size, HttpResponse *resp) {
+    pmSetSleepAllowed(false);
     if (g_busy) g_busy(true);
     int len = -1;
     int sock = open_socket(host, port);
@@ -214,6 +215,7 @@ int http_get(const char *host, int port, const char *path,
         closesocket(sock);
     }
     if (g_busy) g_busy(false);
+    pmSetSleepAllowed(true);
 
     if (len < 0 || resp->status != 200) return -1;
     return len;
@@ -268,6 +270,7 @@ static int download_body(int sock, const char *dest_file, void (*progress)(size_
 
 int http_download(const char *host, int port, const char *path,
                   const char *dest_file, void (*progress)(size_t, size_t)) {
+    pmSetSleepAllowed(false);
     if (g_busy) g_busy(true);
     int total = -1;
     int sock = open_socket(host, port);
@@ -278,5 +281,6 @@ int http_download(const char *host, int port, const char *path,
         closesocket(sock);
     }
     if (g_busy) g_busy(false);
+    pmSetSleepAllowed(true);
     return total;
 }

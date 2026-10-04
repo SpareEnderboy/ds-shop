@@ -28,6 +28,7 @@ echo "Update ROM: $UPDATE_ROM"
 # is always on the emulated SD card. The folder is read from the melonDS config
 # (Flatpak first, then native); override with DEPLOY_DIR=/some/dir, or skip with
 # DEPLOY_DIR= (empty). melonDS only re-reads the ROM on File > Open ROM, not on Reset.
+# This only works on Linux, not MSYS. Manually copying is required on non-Linux platforms.
 if [[ -z "${DEPLOY_DIR+set}" ]]; then
     for cfg in "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml" \
                "$HOME/.config/melonDS/melonDS.toml"; do

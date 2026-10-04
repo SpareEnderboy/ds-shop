@@ -61,6 +61,10 @@ ROMS_DIR/
 
 There's also a Docker setup: `ROMS_DIR=/path/to/your/roms docker compose up -d`
 in `server/`.
+GitHub ROM updates are disabled by default and the ROM volume is mounted
+read-only. To opt in, set `ENABLE_GITHUB_UPDATES=true` and
+`ROM_VOLUME_READ_ONLY=false` before starting Compose; releases are fetched from
+`BwahFox/ds-shop`.
 
 ### 2. Set up the SD card
 

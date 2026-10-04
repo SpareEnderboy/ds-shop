@@ -10,6 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef DS_SHOP_VERSION
+#define DS_SHOP_VERSION "dev"
+#endif
+
 /* ---- categories ----
    url_prefix mirrors the server's folder layout; local_dir is where the files
    go on the SD card. Themes land where TWiLight Menu++ looks for them. */
@@ -197,15 +201,47 @@ bool shop_download_update(const Config *config,
 #else
     const char *dest = config->update_path[0] ? config->update_path : DEFAULT_UPDATE_PATH;
     char dest_dir[MAX_PATH_LEN];
+    char temp[MAX_PATH_LEN + 8];
+    char backup[MAX_PATH_LEN + 8];
     snprintf(dest_dir, sizeof(dest_dir), "%s", dest);
+    if (snprintf(temp, sizeof(temp), "%s.part", dest) >= (int)sizeof(temp)
+            || snprintf(backup, sizeof(backup), "%s.bak", dest) >= (int)sizeof(backup))
+        return false;
+
+    FILE *installed = fopen(dest, "rb");
+    if (installed) {
+        fclose(installed);
+    } else {
+        rename(backup, dest);
+    }
+
     char *slash = strrchr(dest_dir, '/');
     if (slash) {
         if (slash == dest_dir) slash[1] = '\0';
         else *slash = '\0';
         mkdir_p(dest_dir);
     }
-    return http_download(config->server, config->port, "/roms/ds-shop.nds",
-                         dest, progress) >= 0;
+    if (http_download(config->server, config->port, "/roms/ds-shop.nds",
+                      temp, progress) < 0)
+        return false;
+
+    installed = fopen(dest, "rb");
+    bool had_installed = installed != NULL;
+    if (installed) fclose(installed);
+    if (had_installed) {
+        remove(backup);
+        if (rename(dest, backup) != 0) {
+            remove(temp);
+            return false;
+        }
+    }
+    if (rename(temp, dest) == 0) {
+        if (had_installed) remove(backup);
+        return true;
+    }
+    if (had_installed) rename(backup, dest);
+    remove(temp);
+    return false;
 #endif
 }
 
@@ -264,9 +300,10 @@ bool shop_update_available(const Config *config) {
     (void)config;
     return false;
 #else
-    char response[8];
+    char response[1024];
     HttpResponse http_response;
-    int len = http_get(config->server, config->port, "/update_status",
+    int len = http_get(config->server, config->port,
+                       "/update_status?version=" DS_SHOP_VERSION,
                        response, sizeof(response), &http_response);
     return len == 1 && response[0] == '1';
 #endif

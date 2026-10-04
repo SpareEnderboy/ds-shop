@@ -414,9 +414,11 @@ static void run_update(const Config *config) {
     g_dl_item = NULL;
     anim_dl_stop();
 
+    char saved_to[MAX_PATH_LEN + 16];
+    snprintf(saved_to, sizeof(saved_to), "Saved to %s.",
+             config->update_path[0] ? config->update_path : DEFAULT_UPDATE_PATH);
     gui_message(ok ? "Update downloaded" : "Update failed",
-                ok ? "Saved to /roms/nds/ds-shop.nds."
-                   : "Couldn't download ds-shop.nds from the server.",
+                ok ? saved_to : "Couldn't download ds-shop.nds from the server.",
                 ok ? NULL : "Check the server and try again.");
 }
 
@@ -726,12 +728,17 @@ static void setting_value(const Config *c, int i, char *buf, int len) {
 
 /* edit a text or number setting with the keyboard */
 static void edit_setting(Config *c, int i) {
-    char buf[MAX_SERVER_LEN];
+    char buf[MAX_PATH_LEN];
     KbSetup k = { SET_LABELS[i], SET_LABELS[i], SET_HELP[i], "OK", true, i == SET_SERVER2 };
     if (i == SET_SERVER || i == SET_SERVER2) {
         snprintf(buf, sizeof(buf), "%s", i == SET_SERVER ? c->server : c->server2);
+        if (!keyboard(&k, buf, MAX_SERVER_LEN)) return;
+        snprintf(i == SET_SERVER ? c->server : c->server2, MAX_SERVER_LEN,
+             "%.*s", MAX_SERVER_LEN - 1, buf);
+    } else if (i == SET_UPDATE_PATH) {
+        snprintf(buf, sizeof(buf), "%s", c->update_path);
         if (!keyboard(&k, buf, sizeof(buf))) return;
-        snprintf(i == SET_SERVER ? c->server : c->server2, MAX_SERVER_LEN, "%s", buf);
+        snprintf(c->update_path, sizeof(c->update_path), "%s", buf);
     } else {
         int *port = (i == SET_PORT) ? &c->port : &c->port2;
         snprintf(buf, sizeof(buf), "%d", *port);
@@ -769,7 +776,7 @@ static void settings_screen(Config *config) {
             gui_bottom_frame("Settings", NULL);
             widgets_draw(&ws);
             for (int i = 0; i < SET_COUNT; i++) {
-                char v[MAX_SERVER_LEN + 8];
+                char v[MAX_PATH_LEN + 8];
                 setting_value(&c, i, v, sizeof(v));
                 int y = SET_Y + i * SET_H + (SET_H - 2 - font_small.height) / 2;
                 gfx_text(SCR_BOT, &font_small, 16, y, SET_LABELS[i], C_TEXT);
@@ -810,7 +817,7 @@ static void settings_screen(Config *config) {
             id = f;
         }
         switch (id) {
-        case SET_SERVER: case SET_PORT: case SET_SERVER2: case SET_PORT2:
+        case SET_SERVER: case SET_PORT: case SET_SERVER2: case SET_PORT2: case SET_UPDATE_PATH:
             edit_setting(&c, id);
             dirty = true;
             last_focus = -2;
